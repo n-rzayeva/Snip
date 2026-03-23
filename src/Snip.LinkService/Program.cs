@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Snip.LinkService.Data;
 using Snip.LinkService.DTOs;
-using Snip.LinkService.Models;
+using Snip.Shared.Models;
 using Snip.LinkService.Services;
 
 var builder = WebApplication.CreateBuilder(args);

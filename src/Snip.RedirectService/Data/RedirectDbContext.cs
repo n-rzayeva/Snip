@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Snip.Shared.Models;
 
-namespace Snip.LinkService.Data;
+namespace Snip.RedirectService.Data;
 
-public class SnipDbContext : DbContext
+public class RedirectDbContext : DbContext
 {
-    public SnipDbContext(DbContextOptions<SnipDbContext> options) : base(options) { }
+    public RedirectDbContext(DbContextOptions<RedirectDbContext> options) : base(options) { }
 
     public DbSet<Link> Links => Set<Link>();
 

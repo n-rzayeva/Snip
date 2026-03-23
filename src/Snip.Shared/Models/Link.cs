@@ -1,4 +1,4 @@
-namespace Snip.LinkService.Models;
+namespace Snip.Shared.Models;
 
 public class Link
 {
