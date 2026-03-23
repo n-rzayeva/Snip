@@ -1,0 +1,6 @@
+@Snip.LinkService_HostAddress = http://localhost:5089
+
+GET {{Snip.LinkService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

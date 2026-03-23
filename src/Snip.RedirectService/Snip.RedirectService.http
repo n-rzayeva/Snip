@@ -1,0 +1,6 @@
+@Snip.RedirectService_HostAddress = http://localhost:5177
+
+GET {{Snip.RedirectService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
