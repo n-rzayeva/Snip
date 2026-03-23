@@ -3,6 +3,8 @@ using Snip.LinkService.Data;
 using Snip.LinkService.DTOs;
 using Snip.Shared.Models;
 using Snip.LinkService.Services;
+using Snip.Shared;
+using Snip.Shared.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +12,7 @@ builder.Services.AddDbContext<SnipDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
 builder.Services.AddSingleton<SlugService>();
+builder.Services.AddSingleton<KafkaProducerService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -47,7 +50,7 @@ app.MapGet("/api/links/{id:guid}", async (Guid id, SnipDbContext db) =>
 });
 
 // PUT /api/links/{id}
-app.MapPut("/api/links/{id:guid}", async (Guid id, UpdateLinkRequest request, SnipDbContext db) =>
+app.MapPut("/api/links/{id:guid}", async (Guid id, UpdateLinkRequest request, SnipDbContext db, KafkaProducerService kafka) =>
 {
     var link = await db.Links.FindAsync(id);
     if (link is null) return Results.NotFound();
@@ -57,11 +60,18 @@ app.MapPut("/api/links/{id:guid}", async (Guid id, UpdateLinkRequest request, Sn
 
     await db.SaveChangesAsync();
 
+    await kafka.PublishAsync(Topics.LinkUpdated, link.Slug, new LinkUpdatedEvent
+    {
+        Slug = link.Slug,
+        NewDestinationUrl = link.DestinationUrl,
+        Timestamp = DateTime.UtcNow
+    });
+
     return Results.Ok(new LinkResponse(link.Id, link.Slug, link.DestinationUrl, link.CreatedAt, link.IsActive));
 });
 
 // DELETE /api/links/{id}
-app.MapDelete("/api/links/{id:guid}", async (Guid id, SnipDbContext db) =>
+app.MapDelete("/api/links/{id:guid}", async (Guid id, SnipDbContext db, KafkaProducerService kafka) =>
 {
     var link = await db.Links.FindAsync(id);
     if (link is null) return Results.NotFound();
@@ -70,6 +80,12 @@ app.MapDelete("/api/links/{id:guid}", async (Guid id, SnipDbContext db) =>
     link.UpdatedAt = DateTime.UtcNow;
 
     await db.SaveChangesAsync();
+
+    await kafka.PublishAsync(Topics.LinkDeleted, link.Slug, new LinkDeletedEvent
+    {
+        Slug = link.Slug,
+        Timestamp = DateTime.UtcNow
+    });
 
     return Results.NoContent();
 });

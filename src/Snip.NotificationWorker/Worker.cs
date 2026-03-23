@@ -1,16 +1,21 @@
+using Snip.NotificationWorker.Services;
+
 namespace Snip.NotificationWorker;
 
-public class Worker(ILogger<Worker> logger) : BackgroundService
+public class Worker : BackgroundService
 {
+    private readonly NotificationService _notification;
+    private readonly ILogger<Worker> _logger;
+
+    public Worker(NotificationService notification, ILogger<Worker> logger)
+    {
+        _notification = notification;
+        _logger = logger;
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            if (logger.IsEnabled(LogLevel.Information))
-            {
-                logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-            }
-            await Task.Delay(1000, stoppingToken);
-        }
+        _logger.LogInformation("Notification Worker started");
+        await _notification.ConsumeAsync(stoppingToken);
     }
 }
