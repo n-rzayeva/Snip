@@ -44,6 +44,10 @@ services:
     ports:
       - "8123:8123"
       - "9000:9000"
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: snip
+      CLICKHOUSE_DB: snip
     volumes:
       - clickhouse-data:/var/lib/clickhouse
 

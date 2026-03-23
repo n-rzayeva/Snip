@@ -1,16 +1,31 @@
+using Snip.AnalyticsWorker.Services;
+
 namespace Snip.AnalyticsWorker;
 
-public class Worker(ILogger<Worker> logger) : BackgroundService
+public class Worker : BackgroundService
 {
+    private readonly KafkaConsumerService _consumer;
+    private readonly ClickHouseWriterService _writer;
+    private readonly ILogger<Worker> _logger;
+
+    public Worker(KafkaConsumerService consumer, ClickHouseWriterService writer, ILogger<Worker> logger)
+    {
+        _consumer = consumer;
+        _writer = writer;
+        _logger = logger;
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        _logger.LogInformation("Analytics Worker started");
+
+        await _writer.EnsureTableExistsAsync();
+        _logger.LogInformation("ClickHouse table verified");
+
+        await _consumer.ConsumeAsync(async clickEvent =>
         {
-            if (logger.IsEnabled(LogLevel.Information))
-            {
-                logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-            }
-            await Task.Delay(1000, stoppingToken);
-        }
+            await _writer.WriteClickEventAsync(clickEvent);
+            _logger.LogInformation("Written click event for slug {Slug}", clickEvent.Slug);
+        }, stoppingToken);
     }
 }
