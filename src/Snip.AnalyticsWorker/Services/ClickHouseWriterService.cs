@@ -61,4 +61,16 @@ public class ClickHouseWriterService
 
         await copy.WriteToServerAsync(rows);
     }
+
+    public async Task<long> GetTotalClicksAsync(string slug)
+    {
+        using var connection = new ClickHouseConnection(_connectionString);
+        await connection.OpenAsync();
+
+        using var command = connection.CreateCommand();
+        command.CommandText = $"SELECT count() FROM click_events WHERE slug = '{slug}'";
+
+        var result = await command.ExecuteScalarAsync();
+        return Convert.ToInt64(result);
+    }
 }

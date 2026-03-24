@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using Snip.LinkService.Data;
 using Snip.LinkService.DTOs;
 using Snip.Shared.Models;
@@ -13,13 +14,19 @@ builder.Services.AddDbContext<SnipDbContext>(options =>
 
 builder.Services.AddSingleton<SlugService>();
 builder.Services.AddSingleton<KafkaProducerService>();
+builder.Services.AddSingleton<AnalyticsService>();
+builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.UseStaticFiles();
+
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.MapHub<Snip.LinkService.Hubs.ClickHub>("/hubs/clicks");
 
 // POST /api/links
 app.MapPost("/api/links", async (CreateLinkRequest request, SnipDbContext db, SlugService slugService) =>
@@ -88,6 +95,22 @@ app.MapDelete("/api/links/{id:guid}", async (Guid id, SnipDbContext db, KafkaPro
     });
 
     return Results.NoContent();
+});
+
+// GET /api/links/{slug}/analytics
+app.MapGet("/api/links/{slug}/analytics", async (string slug, AnalyticsService analytics) =>
+{
+    var result = await analytics.GetLinkAnalyticsAsync(slug);
+    return Results.Ok(result);
+});
+
+app.MapPost("/internal/notify-click", async (
+    string slug,
+    long totalClicks,
+    IHubContext<Snip.LinkService.Hubs.ClickHub> hubContext) =>
+{
+    await hubContext.Clients.Group(slug).SendAsync("ReceiveClickUpdate", slug, totalClicks);
+    return Results.Ok();
 });
 
 app.Run();
