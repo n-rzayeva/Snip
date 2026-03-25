@@ -5,8 +5,18 @@ using Snip.RedirectService.Data;
 using Snip.RedirectService.Services;
 using Snip.Shared;
 using Snip.Shared.Events;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 builder.Services.AddDbContext<RedirectDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
@@ -14,10 +24,16 @@ builder.Services.AddDbContext<RedirectDbContext>(options =>
 builder.Services.AddSingleton<IConnectionMultiplexer>(
     ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis")!));
 
+builder.Services.AddHealthChecks()
+    .AddRedis(builder.Configuration.GetConnectionString("Redis")!)
+    .AddNpgSql(builder.Configuration.GetConnectionString("Postgres")!);
+
 builder.Services.AddSingleton<CacheService>();
 builder.Services.AddSingleton<KafkaProducerService>();
 
 var app = builder.Build();
+
+app.MapHealthChecks("/health");
 
 app.MapGet("/r/{slug}", async (
     string slug, 
@@ -48,6 +64,7 @@ app.MapGet("/r/{slug}", async (
     return Results.Redirect(link.DestinationUrl, permanent: false);
 });
 
+app.UseSerilogRequestLogging();
 app.Run();
 
 static async Task PublishClickEvent(KafkaProducerService kafka, string slug, string destinationUrl, HttpContext http)

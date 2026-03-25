@@ -6,8 +6,18 @@ using Snip.Shared.Models;
 using Snip.LinkService.Services;
 using Snip.Shared;
 using Snip.Shared.Events;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", Serilog.Events.LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 builder.Services.AddDbContext<SnipDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
@@ -18,6 +28,8 @@ builder.Services.AddSingleton<AnalyticsService>();
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<SnipDbContext>("postgres");
 
 var app = builder.Build();
 
@@ -25,6 +37,8 @@ app.UseStaticFiles();
 
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.MapHealthChecks("/health");
 
 app.MapHub<Snip.LinkService.Hubs.ClickHub>("/hubs/clicks");
 
@@ -113,4 +127,5 @@ app.MapPost("/internal/notify-click", async (
     return Results.Ok();
 });
 
+app.UseSerilogRequestLogging();
 app.Run();
