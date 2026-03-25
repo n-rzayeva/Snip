@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
+using Snip.Shared.Telemetry;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
@@ -25,6 +26,7 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddHealthChecks();
+builder.Services.AddSnipTracing("Snip.Gateway");
 
 var app = builder.Build();
 

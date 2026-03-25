@@ -1,6 +1,7 @@
 using Snip.CacheInvalidator;
 using Snip.CacheInvalidator.Services;
 using Serilog;
+using Snip.Shared.Telemetry;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
@@ -15,6 +16,7 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddSerilog();
 builder.Services.AddSingleton<CacheInvalidatorService>();
 builder.Services.AddHostedService<Worker>();
+builder.Services.AddSnipTracing("Snip.CacheInvalidator", isWebService: false);
 
 var host = builder.Build();
 host.Run();

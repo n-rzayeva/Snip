@@ -1,6 +1,7 @@
 using Snip.AnalyticsWorker;
 using Snip.AnalyticsWorker.Services;
 using Serilog;
+using Snip.Shared.Telemetry;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
@@ -18,6 +19,7 @@ builder.Services.AddSingleton<ClickHouseMigrationRunner>();
 builder.Services.AddSingleton<ClickHouseWriterService>();
 builder.Services.AddSingleton<DashboardNotifier>();
 builder.Services.AddHostedService<Worker>();
+builder.Services.AddSnipTracing("Snip.AnalyticsWorker", isWebService: false);
 
 var host = builder.Build();
 host.Run();

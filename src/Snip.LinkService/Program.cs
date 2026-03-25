@@ -7,6 +7,7 @@ using Snip.LinkService.Services;
 using Snip.Shared;
 using Snip.Shared.Events;
 using Serilog;
+using Snip.Shared.Telemetry;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
@@ -31,15 +32,14 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<SnipDbContext>("postgres");
 
+builder.Services.AddSnipTracing("Snip.LinkService");
+
 var app = builder.Build();
 
 app.UseStaticFiles();
-
 app.UseSwagger();
 app.UseSwaggerUI();
-
 app.MapHealthChecks("/health");
-
 app.MapHub<Snip.LinkService.Hubs.ClickHub>("/hubs/clicks");
 
 // POST /api/links

@@ -6,6 +6,7 @@ using Snip.RedirectService.Services;
 using Snip.Shared;
 using Snip.Shared.Events;
 using Serilog;
+using Snip.Shared.Telemetry;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
@@ -30,6 +31,8 @@ builder.Services.AddHealthChecks()
 
 builder.Services.AddSingleton<CacheService>();
 builder.Services.AddSingleton<KafkaProducerService>();
+
+builder.Services.AddSnipTracing("Snip.RedirectService");
 
 var app = builder.Build();
 
