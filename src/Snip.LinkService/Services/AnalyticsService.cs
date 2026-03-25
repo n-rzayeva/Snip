@@ -30,8 +30,14 @@ public class AnalyticsService
         command.CommandText = @$"
             SELECT count() 
             FROM click_events 
-            WHERE slug = '{slug}'
+            WHERE slug = {{slug:String}}
             AND timestamp >= now() - INTERVAL {days} DAY";
+
+        command.Parameters.Add(new ClickHouse.Client.ADO.Parameters.ClickHouseDbParameter
+        {
+            ParameterName = "slug",
+            Value = slug
+        });
 
         var result = await command.ExecuteScalarAsync();
         return Convert.ToInt64(result);
@@ -45,10 +51,16 @@ public class AnalyticsService
                 toStartOfHour(timestamp) as hour,
                 count() as clicks
             FROM click_events
-            WHERE slug = '{slug}'
+            WHERE slug = {{slug:String}}
             AND timestamp >= now() - INTERVAL {days} DAY
             GROUP BY hour
             ORDER BY hour ASC";
+
+        command.Parameters.Add(new ClickHouse.Client.ADO.Parameters.ClickHouseDbParameter
+        {
+            ParameterName = "slug",
+            Value = slug
+        });
 
         var results = new List<ClicksByHourDto>();
         using var reader = await command.ExecuteReaderAsync();
@@ -74,11 +86,17 @@ public class AnalyticsService
                 ) as device,
                 count() as clicks
             FROM click_events
-            WHERE slug = '{slug}'
+            WHERE slug = {{slug:String}}
             AND timestamp >= now() - INTERVAL {days} DAY
             GROUP BY device
             ORDER BY clicks DESC";
 
+        command.Parameters.Add(new ClickHouse.Client.ADO.Parameters.ClickHouseDbParameter
+        {
+            ParameterName = "slug",
+            Value = slug
+        });
+        
         var results = new List<ClicksByDeviceDto>();
         using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())

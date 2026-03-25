@@ -48,7 +48,12 @@ public class ClickHouseWriterService
         await connection.OpenAsync();
 
         using var command = connection.CreateCommand();
-        command.CommandText = $"SELECT count() FROM click_events WHERE slug = '{slug}'";
+        command.CommandText = "SELECT count() FROM click_events WHERE slug = {slug:String}";
+        command.Parameters.Add(new ClickHouse.Client.ADO.Parameters.ClickHouseDbParameter
+        {
+            ParameterName = "slug",
+            Value = slug
+        });
 
         var result = await command.ExecuteScalarAsync();
         return Convert.ToInt64(result);
