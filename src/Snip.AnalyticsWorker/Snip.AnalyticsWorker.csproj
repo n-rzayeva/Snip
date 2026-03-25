@@ -16,4 +16,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Snip.Shared\Snip.Shared.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\*.sql" />
+  </ItemGroup>
 </Project>
