@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Snip.Shared.Telemetry;
+using System.Text;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
@@ -25,14 +28,33 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(jwtSettings["Secret"]!))
+    };
+});
+
+builder.Services.AddAuthorization();
 builder.Services.AddHealthChecks();
 builder.Services.AddSnipTracing("Snip.Gateway");
 
 var app = builder.Build();
 
 app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapHealthChecks("/health");
 app.MapReverseProxy();
-
 app.UseSerilogRequestLogging();
 app.Run();
