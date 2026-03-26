@@ -18,5 +18,6 @@ public record LinkAnalyticsResponse(
     string Slug,
     long TotalClicks,
     IEnumerable<ClicksByHourDto> ClicksByHour,
-    IEnumerable<ClicksByDeviceDto> ClicksByDevice
+    IEnumerable<ClicksByDeviceDto> ClicksByDevice,
+    IEnumerable<ClicksByCountryDto> ClicksByCountry
 );

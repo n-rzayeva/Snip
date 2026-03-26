@@ -6,3 +6,4 @@ obj/
 appsettings.Development.json
 .env
 **/logs/
+**/GeoLite2-Country.mmdb

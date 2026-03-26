@@ -31,7 +31,7 @@ builder.Services.AddHealthChecks()
 
 builder.Services.AddSingleton<CacheService>();
 builder.Services.AddSingleton<KafkaProducerService>();
-
+builder.Services.AddSingleton<GeoIpService>();
 builder.Services.AddSnipTracing("Snip.RedirectService");
 
 var app = builder.Build();
@@ -39,47 +39,52 @@ var app = builder.Build();
 app.MapHealthChecks("/health");
 
 app.MapGet("/r/{slug}", async (
-    string slug, 
+    string slug,
     HttpContext http,
-    RedirectDbContext db, 
+    RedirectDbContext db,
     CacheService cache,
-    KafkaProducerService kafka) =>
+    KafkaProducerService kafka,
+    GeoIpService geoIp) =>
 {
     // Step 1: check Redis
     var cachedUrl = await cache.GetAsync(slug);
     if (cachedUrl is not null)
     {
-        await PublishClickEvent(kafka, slug, cachedUrl, http);
+        await PublishClickEvent(kafka, geoIp, slug, cachedUrl, http);
         return Results.Redirect(cachedUrl, permanent: false);
     }
 
     // Step 2: check PostgreSQL
     var link = await db.Links.FirstOrDefaultAsync(l => l.Slug == slug && l.IsActive);
-    if (link is null)
-    {
-        return Results.NotFound();
-    }
+    if (link is null) return Results.NotFound();
 
     // Step 3: warm the cache
     await cache.SetAsync(slug, link.DestinationUrl);
-
-    await PublishClickEvent(kafka, slug, link.DestinationUrl, http);
+    await PublishClickEvent(kafka, geoIp, slug, link.DestinationUrl, http);
     return Results.Redirect(link.DestinationUrl, permanent: false);
 });
 
 app.UseSerilogRequestLogging();
 app.Run();
 
-static async Task PublishClickEvent(KafkaProducerService kafka, string slug, string destinationUrl, HttpContext http)
+static async Task PublishClickEvent(
+    KafkaProducerService kafka,
+    GeoIpService geoIp,
+    string slug,
+    string destinationUrl,
+    HttpContext http)
 {
+    var ip = http.Connection.RemoteIpAddress?.ToString();
+
     var clickEvent = new ClickEvent
     {
         Slug = slug,
         DestinationUrl = destinationUrl,
         Timestamp = DateTime.UtcNow,
-        IpAddress = http.Connection.RemoteIpAddress?.ToString(),
+        IpAddress = ip,
         UserAgent = http.Request.Headers.UserAgent.ToString(),
-        Referer = http.Request.Headers.Referer.ToString()
+        Referer = http.Request.Headers.Referer.ToString(),
+        Country = geoIp.GetCountry(ip)
     };
 
     await kafka.PublishAsync(Topics.ClickEvents, slug, clickEvent);

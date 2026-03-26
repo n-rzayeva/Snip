@@ -8,4 +8,5 @@ public class ClickEvent
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }
     public string? Referer { get; set; }
+    public string? Country { get; set; }
 }

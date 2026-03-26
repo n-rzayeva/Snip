@@ -35,7 +35,8 @@ public class ClickHouseWriterService
                 clickEvent.Timestamp,
                 clickEvent.IpAddress,
                 clickEvent.UserAgent,
-                clickEvent.Referer
+                clickEvent.Referer,
+                clickEvent.Country
             }
         };
 

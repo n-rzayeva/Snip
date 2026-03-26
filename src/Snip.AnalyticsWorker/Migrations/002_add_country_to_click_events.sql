@@ -1,0 +1,1 @@
+ALTER TABLE click_events ADD COLUMN IF NOT EXISTS country Nullable(String)
