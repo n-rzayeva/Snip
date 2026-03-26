@@ -15,8 +15,10 @@ public class SnipDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.UserId);
             entity.Property(e => e.Slug).HasMaxLength(20).IsRequired();
             entity.Property(e => e.DestinationUrl).HasMaxLength(2048).IsRequired();
+            entity.Property(e => e.UserId).HasMaxLength(450).IsRequired();
         });
     }
 }
