@@ -1,0 +1,40 @@
+.navbar {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 2rem;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.username {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.logoutButton {
+  background: #f3f4f6;
+  color: #374151;
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.logoutButton:hover {
+  background: #e5e7eb;
+}

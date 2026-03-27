@@ -1,0 +1,147 @@
+.container {
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+.main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6c757d;
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  cursor: pointer;
+  background: none;
+}
+
+.back:hover {
+  color: #374151;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.slug {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #4f46e5;
+  margin-bottom: 0.25rem;
+}
+
+.destination {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.statCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  text-align: center;
+}
+
+.statValue {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #4f46e5;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.liveDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+  margin-right: 4px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  margin-bottom: 1rem;
+}
+
+.cardTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.25rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.countryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.9rem;
+}
+
+.countryRow:last-child {
+  border-bottom: none;
+}
+
+.countryName {
+  color: #374151;
+}
+
+.countryClicks {
+  font-weight: 600;
+  color: #4f46e5;
+}
+
+.loading {
+  text-align: center;
+  color: #6c757d;
+  padding: 3rem;
+}
+
+.error {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
