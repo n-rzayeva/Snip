@@ -55,6 +55,12 @@ builder.Services.AddSnipTracing("Snip.LinkService");
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SnipDbContext>();
+    db.Database.Migrate();
+}
+
 app.UseStaticFiles();
 app.UseSwagger();
 app.UseSwaggerUI();
