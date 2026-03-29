@@ -17,7 +17,6 @@ builder.Services.AddSerilog();
 builder.Services.AddSingleton<KafkaConsumerService>();
 builder.Services.AddSingleton<ClickHouseMigrationRunner>();
 builder.Services.AddSingleton<ClickHouseWriterService>();
-builder.Services.AddSingleton<DashboardNotifier>();
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddSnipTracing("Snip.AnalyticsWorker", isWebService: false);
 

@@ -21,6 +21,17 @@ Log.Logger = new LoggerConfiguration()
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 builder.Services.AddDbContext<SnipDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres")));
 
@@ -50,7 +61,7 @@ builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer
 builder.Services.AddAuthorization();
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<SnipDbContext>("postgres");
-
+builder.Services.AddHostedService<ClickEventListener>();
 builder.Services.AddSnipTracing("Snip.LinkService");
 
 var app = builder.Build();
@@ -65,6 +76,7 @@ app.UseStaticFiles();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseAuthentication();
+app.UseCors("AllowFrontend");
 app.UseAuthorization();
 app.MapHealthChecks("/health");
 app.MapHub<Snip.LinkService.Hubs.ClickHub>("/hubs/clicks");
@@ -169,15 +181,6 @@ app.MapGet("/api/links/{slug}/analytics", async (string slug, AnalyticsService a
 {
     var result = await analytics.GetLinkAnalyticsAsync(slug);
     return Results.Ok(result);
-});
-
-app.MapPost("/internal/notify-click", async (
-    string slug,
-    long totalClicks,
-    IHubContext<Snip.LinkService.Hubs.ClickHub> hubContext) =>
-{
-    await hubContext.Clients.Group(slug).SendAsync("ReceiveClickUpdate", slug, totalClicks);
-    return Results.Ok();
 });
 
 app.UseSerilogRequestLogging();

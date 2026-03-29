@@ -47,13 +47,16 @@ export default function LinkAnalytics() {
 
   async function setupSignalR() {
     const connection = new HubConnectionBuilder()
-      .withUrl('http://localhost:5089/hubs/clicks')
+      .withUrl('http://localhost:5000/hubs/clicks')
       .withAutomaticReconnect()
       .build()
 
-    connection.on('ReceiveClickUpdate', (updatedSlug, clicks) => {
+    connection.on('ReceiveClickUpdate', async (updatedSlug) => {
       if (updatedSlug === slug) {
-        setTotalClicks(clicks)
+        const res = await api.get(`/api/links/${slug}/analytics`)
+        const data = await res.json()
+        setTotalClicks(data.totalClicks)
+        setAnalytics(data)
       }
     })
 
