@@ -14,6 +14,7 @@ Log.Logger = new LoggerConfiguration()
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddSerilog();
+builder.Services.AddSingleton<KafkaProducerService>();
 builder.Services.AddSingleton<NotificationService>();
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddSnipTracing("Snip.NotificationWorker", isWebService: false);

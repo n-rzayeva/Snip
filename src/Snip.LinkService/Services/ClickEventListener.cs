@@ -27,41 +27,80 @@ public class ClickEventListener : BackgroundService
     {
         _logger.LogInformation("Click event listener started");
 
-        var config = new ConsumerConfig
-        {
-            BootstrapServers = _configuration.GetConnectionString("Kafka"),
-            GroupId = "link-service-signalr",
-            AutoOffsetReset = AutoOffsetReset.Latest,
-            EnableAutoCommit = true
-        };
+        await Task.WhenAll(
+            ConsumeClickEvents(stoppingToken),
+            ConsumeAlerts(stoppingToken)
+        );
+    }
 
-        using var consumer = new ConsumerBuilder<string, string>(config).Build();
+    private async Task ConsumeClickEvents(CancellationToken ct)
+    {
+        using var consumer = BuildConsumer("link-service-signalr");
         consumer.Subscribe(Topics.ClickEvents);
 
         await Task.Run(() =>
         {
-            while (!stoppingToken.IsCancellationRequested)
+            while (!ct.IsCancellationRequested)
             {
                 try
                 {
-                    var result = consumer.Consume(stoppingToken);
+                    var result = consumer.Consume(ct);
                     if (result?.Message?.Value is null) continue;
 
                     var clickEvent = JsonSerializer.Deserialize<ClickEvent>(result.Message.Value);
                     if (clickEvent is null) continue;
 
                     _hubContext.Clients.Group(clickEvent.Slug)
-                        .SendAsync("ReceiveClickUpdate", clickEvent.Slug, stoppingToken);
+                        .SendAsync("ReceiveClickUpdate", clickEvent.Slug, ct);
 
                     _logger.LogInformation("SignalR nudge sent for slug {Slug}", clickEvent.Slug);
                 }
                 catch (OperationCanceledException) { break; }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error in click event listener");
-                }
+                catch (Exception ex) { _logger.LogError(ex, "Error consuming click event"); }
             }
             consumer.Close();
-        }, stoppingToken);
+        }, ct);
+    }
+
+    private async Task ConsumeAlerts(CancellationToken ct)
+    {
+        using var consumer = BuildConsumer("link-service-alerts");
+        consumer.Subscribe(Topics.LinkAlerts);
+
+        await Task.Run(() =>
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    var result = consumer.Consume(ct);
+                    if (result?.Message?.Value is null) continue;
+
+                    var alert = JsonSerializer.Deserialize<LinkAlertEvent>(result.Message.Value);
+                    if (alert is null) continue;
+
+                    _hubContext.Clients.Group(alert.Slug)
+                        .SendAsync("ReceiveAlert", alert.Slug, alert.Milestone, alert.RealTotal, ct);
+
+                    _logger.LogInformation("Alert pushed for slug {Slug}: milestone {Milestone}",
+                        alert.Slug, alert.Milestone);
+                }
+                catch (OperationCanceledException) { break; }
+                catch (Exception ex) { _logger.LogError(ex, "Error consuming alert"); }
+            }
+            consumer.Close();
+        }, ct);
+    }
+
+    private IConsumer<string, string> BuildConsumer(string groupId)
+    {
+        var config = new ConsumerConfig
+        {
+            BootstrapServers = _configuration.GetConnectionString("Kafka"),
+            GroupId = groupId,
+            AutoOffsetReset = AutoOffsetReset.Latest,
+            EnableAutoCommit = true
+        };
+        return new ConsumerBuilder<string, string>(config).Build();
     }
 }

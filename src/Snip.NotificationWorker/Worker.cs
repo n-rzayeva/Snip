@@ -16,6 +16,10 @@ public class Worker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Notification Worker started");
+
+        await _notification.InitializeCountsAsync();
+        _logger.LogInformation("Counts initialized from ClickHouse");
+
         await _notification.ConsumeAsync(stoppingToken);
     }
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr'
+import { HubConnectionBuilder } from '@microsoft/signalr'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, BarChart, Bar
@@ -17,6 +17,8 @@ export default function LinkAnalytics() {
   const [totalClicks, setTotalClicks] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [toasts, setToasts] = useState([])
+  const toastIdRef = useRef(0)
   const connectionRef = useRef(null)
   const user = auth.getUser()
 
@@ -27,6 +29,7 @@ export default function LinkAnalytics() {
     return () => {
       if (connectionRef.current) {
         connectionRef.current.stop()
+        connectionRef.current = null
       }
     }
   }, [slug])
@@ -46,10 +49,15 @@ export default function LinkAnalytics() {
   }
 
   async function setupSignalR() {
+  if (connectionRef.current?.state === 'Connected' || 
+      connectionRef.current?.state === 'Connecting') return
+
     const connection = new HubConnectionBuilder()
       .withUrl('http://localhost:5000/hubs/clicks')
       .withAutomaticReconnect()
       .build()
+
+    connectionRef.current = connection
 
     connection.on('ReceiveClickUpdate', async (updatedSlug) => {
       if (updatedSlug === slug) {
@@ -60,13 +68,24 @@ export default function LinkAnalytics() {
       }
     })
 
+    connection.on('ReceiveAlert', (updatedSlug, milestone, realTotal) => {
+      if (updatedSlug === slug) {
+        addToast(`🎉 ${milestone.toLocaleString()} clicks milestone reached!`)
+      }
+    })
+
     try {
       await connection.start()
       await connection.invoke('JoinLinkGroup', slug)
-      connectionRef.current = connection
     } catch (err) {
       console.error('SignalR connection failed:', err)
     }
+  }
+
+  function addToast(message) {
+    const id = ++toastIdRef.current
+    setToasts(prev => [...prev, { id, message }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000)
   }
 
   function formatHour(dateStr) {
@@ -184,6 +203,31 @@ export default function LinkAnalytics() {
           )}
         </div>
       </div>
+      {toasts.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '1.5rem',
+          right: '1.5rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+          zIndex: 1000
+        }}>
+          {toasts.map(toast => (
+            <div key={toast.id} style={{
+              background: '#4f46e5',
+              color: 'white',
+              padding: '0.875rem 1.25rem',
+              borderRadius: '10px',
+              fontSize: '0.9rem',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              animation: 'slideIn 0.3s ease'
+            }}>
+              {toast.message}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
