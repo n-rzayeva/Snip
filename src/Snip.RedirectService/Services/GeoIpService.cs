@@ -4,19 +4,28 @@ namespace Snip.RedirectService.Services;
 
 public class GeoIpService : IDisposable
 {
-    private readonly DatabaseReader _reader;
+    private readonly DatabaseReader? _reader;
     private readonly ILogger<GeoIpService> _logger;
 
     public GeoIpService(ILogger<GeoIpService> logger)
     {
         _logger = logger;
         var dbPath = Path.Combine(AppContext.BaseDirectory, "GeoLite2-Country.mmdb");
-        _reader = new DatabaseReader(dbPath);
+
+        if (File.Exists(dbPath))
+        {
+            _reader = new DatabaseReader(dbPath);
+            _logger.LogInformation("GeoIP database loaded successfully");
+        }
+        else
+        {
+            _logger.LogWarning("GeoLite2-Country.mmdb not found at {Path}. Country detection disabled.", dbPath);
+        }
     }
 
     public string? GetCountry(string? ipAddress)
     {
-        if (string.IsNullOrEmpty(ipAddress)) return null;
+        if (_reader is null || string.IsNullOrEmpty(ipAddress)) return null;
 
         try
         {
@@ -35,6 +44,6 @@ public class GeoIpService : IDisposable
 
     public void Dispose()
     {
-        _reader.Dispose();
+        _reader?.Dispose();
     }
 }
