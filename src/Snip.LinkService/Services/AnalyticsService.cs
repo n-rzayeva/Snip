@@ -1,4 +1,6 @@
 using ClickHouse.Client.ADO;
+using Microsoft.EntityFrameworkCore;
+using Snip.LinkService.Data;
 using Snip.LinkService.DTOs;
 
 namespace Snip.LinkService.Services;
@@ -6,14 +8,21 @@ namespace Snip.LinkService.Services;
 public class AnalyticsService
 {
     private readonly string _connectionString;
+    private readonly SnipDbContext _dbContext;
 
-    public AnalyticsService(IConfiguration configuration)
+    public AnalyticsService(IConfiguration configuration, SnipDbContext dbContext)
     {
         _connectionString = configuration.GetConnectionString("ClickHouse")!;
+        _dbContext = dbContext;
     }
 
-    public async Task<LinkAnalyticsResponse> GetLinkAnalyticsAsync(string slug, int days = 7)
+    public async Task<LinkAnalyticsResponse?> GetLinkAnalyticsAsync(string slug, string userId, int days = 7)
     {
+        var linkExists = await _dbContext.Links
+            .AnyAsync(l => l.Slug == slug && l.UserId == userId && l.IsActive);
+
+        if (!linkExists) return null;
+
         using var connection = new ClickHouseConnection(_connectionString);
         await connection.OpenAsync();
 

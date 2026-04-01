@@ -37,7 +37,7 @@ builder.Services.AddDbContext<SnipDbContext>(options =>
 
 builder.Services.AddSingleton<SlugService>();
 builder.Services.AddSingleton<KafkaProducerService>();
-builder.Services.AddSingleton<AnalyticsService>();
+builder.Services.AddScoped<AnalyticsService>();
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -177,9 +177,14 @@ app.MapGet("/api/links", async (HttpContext http, SnipDbContext db) =>
 });
 
 // GET /api/links/{slug}/analytics
-app.MapGet("/api/links/{slug}/analytics", async (string slug, AnalyticsService analytics) =>
+app.MapGet("/api/links/{slug}/analytics", async (string slug, HttpContext http, AnalyticsService analytics) =>
 {
-    var result = await analytics.GetLinkAnalyticsAsync(slug);
+    var userId = http.GetUserId();
+    if (userId is null) return Results.Unauthorized();
+
+    var result = await analytics.GetLinkAnalyticsAsync(slug, userId);
+    if (result is null) return Results.NotFound();
+
     return Results.Ok(result);
 });
 

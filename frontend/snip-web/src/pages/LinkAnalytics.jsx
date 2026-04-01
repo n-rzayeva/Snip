@@ -38,6 +38,10 @@ export default function LinkAnalytics() {
     setLoading(true)
     try {
       const res = await api.get(`/api/links/${slug}/analytics`)
+      if (res.status === 404) {
+        setError('Link not found or you do not have access to it')
+        return
+      }
       const data = await res.json()
       setAnalytics(data)
       setTotalClicks(data.totalClicks)
@@ -49,8 +53,8 @@ export default function LinkAnalytics() {
   }
 
   async function setupSignalR() {
-  if (connectionRef.current?.state === 'Connected' || 
-      connectionRef.current?.state === 'Connecting') return
+    if (connectionRef.current?.state === 'Connected' || 
+        connectionRef.current?.state === 'Connecting') return
 
     const connection = new HubConnectionBuilder()
       .withUrl('http://localhost:5000/hubs/clicks')
