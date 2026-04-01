@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Snip.LinkService.Data;
 using Snip.LinkService.DTOs;
@@ -40,7 +41,32 @@ builder.Services.AddSingleton<KafkaProducerService>();
 builder.Services.AddScoped<AnalyticsService>();
 builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Enter your JWT token here"
+    });
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
@@ -162,18 +188,30 @@ app.MapDelete("/api/links/{id:guid}", async (Guid id, HttpContext http, SnipDbCo
 });
 
 // GET /api/links
-app.MapGet("/api/links", async (HttpContext http, SnipDbContext db) =>
+app.MapGet("/api/links", async (HttpContext http, SnipDbContext db, [FromQuery] int page = 1, [FromQuery] int pageSize = 10) =>
 {
     var userId = http.GetUserId();
     if (userId is null) return Results.Unauthorized();
 
+    var totalCount = await db.Links
+        .CountAsync(l => l.UserId == userId && l.IsActive);
+
     var links = await db.Links
         .Where(l => l.UserId == userId && l.IsActive)
         .OrderByDescending(l => l.CreatedAt)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
         .Select(l => new LinkResponse(l.Id, l.Slug, l.DestinationUrl, l.CreatedAt, l.IsActive))
         .ToListAsync();
 
-    return Results.Ok(links);
+    return Results.Ok(new
+    {
+        data = links,
+        page,
+        pageSize,
+        totalCount,
+        totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+    });
 });
 
 // GET /api/links/{slug}/analytics

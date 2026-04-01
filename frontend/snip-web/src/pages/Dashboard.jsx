@@ -15,19 +15,24 @@ export default function Dashboard() {
   const [copiedSlug, setCopiedSlug] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [editUrl, setEditUrl] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const pageSize = 10
   const navigate = useNavigate()
   const user = auth.getUser()
 
   useEffect(() => {
-    fetchLinks()
+    fetchLinks(1)
   }, [])
 
-  async function fetchLinks() {
+  async function fetchLinks(pageNumber = 1) {
     setLoading(true)
     try {
-      const res = await api.get('/api/links')
+      const res = await api.get(`/api/links?page=${pageNumber}&pageSize=${pageSize}`)
       const data = await res.json()
-      setLinks(data)
+      setLinks(data.data)
+      setTotalPages(data.totalPages)
+      setPage(pageNumber)
     } catch {
       setError('Failed to load links')
     } finally {
@@ -65,6 +70,7 @@ export default function Dashboard() {
 
       setLinks(prev => [data, ...prev])
       setDestinationUrl('')
+      if (page !== 1) fetchLinks(1)
     } catch {
       setError('Failed to create link')
     } finally {
@@ -157,6 +163,7 @@ export default function Dashboard() {
             No links yet. Create your first one above.
           </div>
         ) : (
+        <>
           <div className={styles.linkList}>
             {links.map(link => (
               <div key={link.id} className={styles.linkCard}>
@@ -228,6 +235,28 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
+          {totalPages > 1 && (
+            <div className={styles.pagination}>
+              <button
+                className={styles.pageButton}
+                onClick={() => fetchLinks(page - 1)}
+                disabled={page === 1}
+              >
+                ← Prev
+              </button>
+              <span className={styles.pageInfo}>
+                {page} / {totalPages}
+              </span>
+              <button
+                className={styles.pageButton}
+                onClick={() => fetchLinks(page + 1)}
+                disabled={page === totalPages}
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </>
         )}
       </div>
     </div>
